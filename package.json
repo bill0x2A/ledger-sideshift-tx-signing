@@ -1,5 +1,5 @@
 {
-  "name": "ledger-toy-app",
+  "name": "sideshift-ledger-tx-signing",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -15,6 +15,11 @@
     "next": "13.4.12",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "typescript": "5.1.6"
+    "typescript": "5.1.6",
+    "google-protobuf": "^3.19.1",
+    "elliptic": "6.5.4",
+    "dotenv": "10.0.0",
+    "@types/elliptic": "6.4.14",
+    "base64url": "^3.0.1"
   }
 }
