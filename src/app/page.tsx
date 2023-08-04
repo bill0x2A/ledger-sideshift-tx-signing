@@ -1,5 +1,6 @@
 "use client";
 import { useState, FormEvent } from 'react';
+import { Options } from './types';
 
 type LedgerSignInput = {
   depositAddress: string;
@@ -65,10 +66,19 @@ export default function Home () {
   });
 
   const [result, setResult] = useState<LedgerSignOutput | null>(null);
+  const [options, setOptions] = useState<Options>({
+    shouldHash: true,
+    copyAndPastedSigningMethod: true,
+  });
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setInput((prevInput) => ({ ...prevInput, [name]: value }));
+  };
+
+  const handleOptionsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = event.target;
+    setOptions((prevOptions) => ({ ...prevOptions, [name]: checked }));
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -82,7 +92,7 @@ export default function Home () {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ input }),
+      body: JSON.stringify({ input, options }),
     });
 
     const data: LedgerSignOutput = await res.json();
@@ -109,7 +119,9 @@ export default function Home () {
           <FormInput name="depositAmount" value={input.depositAmount} onChange={handleInputChange} required />
           <FormInput name="settleAmount" value={input.settleAmount} onChange={handleInputChange} required />
           <FormInput name="deviceTransactionId" value={input.deviceTransactionId} onChange={handleInputChange} required />
-          <button style={{width: "20rem"}} type="submit">Generate payload and signature</button>
+          <div><input type="checkbox" name={'shouldHash'} checked={options.shouldHash} onChange={handleOptionsChange}/> Should hash</div>
+          <div><input type="checkbox" name={'copyAndPastedSigningMethod'} checked={options.copyAndPastedSigningMethod} onChange={handleOptionsChange}/> Copy and paste method</div>
+          <button style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="submit">Generate payload and signature</button>
         </form>
         <div>
           <DisplayInput name="Payload (base64url)" value={result?.payload || ''}/>
