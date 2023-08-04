@@ -1,0 +1,33 @@
+{
+    "id": "ssaitest",
+    "name": "Sideshift.ai Payload Testing",
+    "url": "http://localhost:3000",
+    "homepageUrl": "http://localhost:3000",
+    "icon": "https://sideshift.ai/meta/favicon-32x32.png",
+    "platform": "all",
+    "apiVersion": "2.0.0",
+    "manifestVersion": "0.0.1",
+    "branch": "stable",
+    "categories": ["buy"],
+    "currencies": [
+      "ethereum",
+      "near"
+    ],
+    "content": {
+      "shortDescription": {
+        "en": "Exchange API debugger."
+      },
+      "description": {
+        "en": "Exchange API payload and signature generation debugger."
+      }
+    },
+    "permissions": [
+      "exchange.start",
+      "exchange.completeSwap",
+      "exchange.complete"
+    ],
+    "domains": [
+      "https://*",
+      "http://*"
+    ]
+  }
