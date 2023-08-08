@@ -30,7 +30,6 @@ https://github.com/bill0x2A/ledger-sideshift-tx-signing/blob/protobuf-payload-el
 
 All payload construction and signing methods are shown in single files here for debugging.
 
-
 ### Frontend debugging features
 
 The minimal frontend allows the filling of all inputs that go into the payload construction, and call the backend signing functions, with copy and pasted default values from a real RPC call.
