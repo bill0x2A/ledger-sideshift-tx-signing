@@ -35,3 +35,9 @@ All payload construction and signing methods are shown in single files here for 
 The minimal frontend allows the filling of all inputs that go into the payload construction, and call the backend signing functions, with copy and pasted default values from a real RPC call.
 
 There are buttons to call `exchange.start`, `exchange.completeSwap` and construct the payload and signatures.
+
+All the frontend does it take the backend call, and [call the wallet-api completeSwap function here.](https://github.com/bill0x2A/ledger-sideshift-tx-signing/blob/main/src/app/page.tsx#L113-L114), decoding the base64url encoded `payload` and `signature` back to a Buffer, as required by `wallet-api`, using the same library used to encode them.
+
+
+Please contact [bill0x2a on Discord](https://discordapp.com/users/bill0x2a) for more information and discussion.
+
