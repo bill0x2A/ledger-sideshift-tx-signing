@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server.js';
 import { LedgerSignInput } from '@/app/types.js';
 import base64url from 'base64url';
-import sha256 from 'js-sha256';
-import secp256r1 from 'secp256r1';
-import '../../lib/protocol_pb.js';
+import { ec as EC } from 'elliptic';
 import protobuf from 'protobufjs';
+import { createHash } from 'crypto';
 
 // https://developers.ledger.com/docs/swap/howto/providers-endpoints/#protobuf-message-payload
 const PROTOBUF_SCHEMA = `
@@ -34,42 +33,45 @@ const generateProtobufPayload = (input: LedgerSignInput): Buffer => {
   return Buffer.from(proto)
 }
 
-// Based on:
-// https://github.com/LedgerHQ/platform-app-test-exchange/blob/main/src/getData/index.ts
-const generatePayloadAndSignature = (
-  input: LedgerSignInput
-) => {
+const signPayloadElliptic = (
+  payload: Buffer,
+): Buffer => {
   const ledgerPrivateKey = process.env.LEDGER_PRIVATE_KEY;
 
   if (!ledgerPrivateKey) {
-    throw new Error("Ledger private key not configured");
+    throw new Error('LEDGER_PRIVATE_KEY should be set as a 64 characters long hex string (32 bytes) in .env.local');
   }
 
-  // Example constructs this from a Uint8Array, both converted to Buffer so equivalent
-  const TEST_PRIVATE_KEY = Buffer.from(ledgerPrivateKey, "hex");
+  const ec = new EC('secp256k1');
 
-  // Replaced with protobuf payload
-  const payload = generateProtobufPayload(input);
+  // privateKey should be a 64 characters long hex string (32 bytes)
+  const key = ec.keyFromPrivate(ledgerPrivateKey, 'hex');
 
-  const base64Payload = Buffer.from(base64url(payload));
+  // Hash the payload using SHA-256
+  const hash = createHash('sha256');
+  hash.update(payload);
+  const hashedPayload = hash.digest();
 
-  const message = Buffer.concat([Buffer.from("."), base64Payload]);
-  const digest = Buffer.from(sha256.sha256.array(message));
+  const signature = key.sign(hashedPayload);
 
-  const signature = Buffer.from(
-    secp256r1.sign(digest, TEST_PRIVATE_KEY).signature
-  );
+  // Ensure 'r' and 's' are 32 bytes each, pad if necessary
+  const r = Buffer.from(signature.r.toString(16).padStart(64, '0'), 'hex');
+  const s = Buffer.from(signature.s.toString(16).padStart(64, '0'), 'hex');
 
-  return { binaryPayload: base64Payload, signature };
+  // Concatenate r and s values
+  const r_s_signature = Buffer.concat([r, s]);
+
+  return r_s_signature;
 };
 
 export async function POST(req: any) {
   const { input }: { input: LedgerSignInput } = await req.json();
 
-  const { binaryPayload, signature } = generatePayloadAndSignature(input);
+  const payload = generateProtobufPayload(input);
+  const signature = signPayloadElliptic(payload);
 
   // Return payload and signature as base64url encoded strings
   return NextResponse.json(
-    { payload: base64url(binaryPayload), signature: base64url(signature) },
+    { payload: base64url(payload), signature: base64url(signature) },
   );
 }
