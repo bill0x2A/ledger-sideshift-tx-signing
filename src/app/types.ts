@@ -15,6 +15,7 @@ type LedgerSignInput = {
 type Options = {
   shouldHash?: boolean;
   copyAndPastedSigningMethod?: boolean;
+  googlePayloadGeneration?: boolean;
 };
 
 export type { LedgerSignInput, Options };

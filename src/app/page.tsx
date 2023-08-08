@@ -1,6 +1,9 @@
 "use client";
 import { useState, FormEvent } from 'react';
+import { WalletAPIClient, WindowMessageTransport } from '@ledgerhq/wallet-api-client';
 import { Options } from './types';
+import base64url from 'base64url';
+import BigNumber from 'bignumber.js';
 
 type LedgerSignInput = {
   depositAddress: string;
@@ -20,6 +23,11 @@ type LedgerSignOutput = {
   payload: string;
   signature: string;
 };
+
+const windowMessageTransport = new WindowMessageTransport();
+windowMessageTransport.connect();
+
+const ledgerWalletAPIClient = new WalletAPIClient(windowMessageTransport);
 
 const FormInput = (
   { name, value, onChange, required }:
@@ -69,6 +77,7 @@ export default function Home () {
   const [options, setOptions] = useState<Options>({
     shouldHash: true,
     copyAndPastedSigningMethod: true,
+    googlePayloadGeneration: true,
   });
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,6 +89,33 @@ export default function Home () {
     const { name, checked } = event.target;
     setOptions((prevOptions) => ({ ...prevOptions, [name]: checked }));
   };
+
+  const handleStartTransaction = async () => {
+    const deviceTxId = await ledgerWalletAPIClient.exchange.start("SWAP");
+    setInput((prevInput) => ({ ...prevInput, deviceTransactionId: deviceTxId }));
+
+    return deviceTxId;
+  }
+
+  const handleCompleteTransaction = async () => {
+    if (!result) return;
+  
+    const txId = await ledgerWalletAPIClient.exchange.completeSwap({
+      provider: 'ssaitest',
+      fromAccountId: "dcb911b8-f527-5150-8d03-d11ccc8553ae",
+      toAccountId: "f4057b5b-8b93-5420-8645-5b4f285c6b42",
+      transaction: {
+        amount: BigNumber(input.depositAmount) as any,
+        recipient: "a66ed5c7acd6d8c6e6da7ed867602fd134060fadab826fc3dc85b811c9368399",
+        family: "near",
+        mode: "send"
+      },
+      binaryPayload: base64url.toBuffer(result.payload),
+      signature: base64url.toBuffer(result.signature),
+      feeStrategy: 'MEDIUM',
+    });
+  }
+
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -121,7 +157,10 @@ export default function Home () {
           <FormInput name="deviceTransactionId" value={input.deviceTransactionId} onChange={handleInputChange} required />
           <div><input type="checkbox" name={'shouldHash'} checked={options.shouldHash} onChange={handleOptionsChange}/> Should hash</div>
           <div><input type="checkbox" name={'copyAndPastedSigningMethod'} checked={options.copyAndPastedSigningMethod} onChange={handleOptionsChange}/> Copy and paste method</div>
+          <div><input type="checkbox" name={'googlePayloadGeneration'} checked={options.googlePayloadGeneration} onChange={handleOptionsChange}/> Google payload generation</div>
           <button style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="submit">Generate payload and signature</button>
+          <button style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="button" onClick={handleStartTransaction}>Start Transaction</button>
+          <button style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="button" onClick={handleCompleteTransaction}>Complete Transaction</button>
         </form>
         <div>
           <DisplayInput name="Payload (base64url)" value={result?.payload || ''}/>
@@ -133,4 +172,3 @@ export default function Home () {
     </div>
   );
 };
-

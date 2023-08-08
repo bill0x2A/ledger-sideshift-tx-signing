@@ -1,36 +1,13 @@
 import base64url from 'base64url';
 import { createHash } from 'crypto';
 import { ec as EC } from 'elliptic';
+import secp256r1 from "secp256r1";
+import sha256 from "js-sha256";
+import { generateGooglePayload, generateProtobufPayload } from './payloadGeneration.js';
 import { LedgerSignInput, Options } from '../types.js';
 import '../lib/protocol_pb.js';
 
-const numberToBigEndianBuffer = (x: string) => {
-  const hex = BigInt(x).toString(16).padStart(32, '0'); // Ensuring 32 hexadecimal digits (16 bytes)
-
-  return Uint8Array.from(Buffer.from(hex, 'hex'));
-};
-
-export const generatePayload = (input: LedgerSignInput): Buffer => {
-  const tr = new proto.ledger_swap.NewTransactionResponse();
-
-  tr.setPayinAddress(input.depositAddress);
-  tr.setPayinExtraId(input.depositMemo ?? '');
-  tr.setRefundAddress(input.refundAddress ?? '');
-  tr.setRefundExtraId(input.refundMemo ?? '');
-  tr.setPayoutAddress(input.settleAddress);
-  tr.setPayoutExtraId(input.settleMemo ?? '');
-  tr.setCurrencyFrom(input.depositMethodId);
-  tr.setCurrencyTo(input.settleMethodId);
-  tr.setAmountToProvider(numberToBigEndianBuffer(input.depositAmount));
-  tr.setAmountToWallet(numberToBigEndianBuffer(input.settleAmount));
-  tr.setDeviceTransactionId(input.deviceTransactionId);
-
-  // Serialize payload, return as Buffer
-  return Buffer.from(tr.serializeBinary());
-}
-
-// Elliptic curve signing
-const signPayload = (
+const signPayloadElliptic = (
   payload: Buffer,
   privateKey: string,
   { shouldHash = true }: { shouldHash?: boolean },
@@ -44,6 +21,7 @@ const signPayload = (
   const hash = createHash('sha256');
   hash.update(payload);
   const hashedPayload = hash.digest();
+
   const signature = key.sign(shouldHash ? hashedPayload : payload);
 
   // Ensure 'r' and 's' are 32 bytes each, pad if necessary
@@ -56,6 +34,17 @@ const signPayload = (
   return r_s_signature;
 };
 
+export const signPayload = (payload: Buffer, privateKey: string) => {
+  const message = Buffer.concat([Buffer.from("."), payload]);
+  const digest = Buffer.from(sha256.sha256.array(message));
+
+  const signature = Buffer.from(
+    secp256r1.sign(digest, Buffer.from(privateKey, 'hex')).signature
+  );
+
+  return signature;
+};
+
 export const generatePayloadAndSignature = (input: LedgerSignInput, options: Options) => {
   const ledgerPrivateKey = process.env.LEDGER_PRIVATE_KEY;
 
@@ -63,8 +52,9 @@ export const generatePayloadAndSignature = (input: LedgerSignInput, options: Opt
     throw new Error('Ledger private key not configured');
   }
 
-  const payload = generatePayload(input);
-  const signature = signPayload(payload, ledgerPrivateKey, options);
+  const payload = options.googlePayloadGeneration ? generateProtobufPayload(input) : generateGooglePayload(input);
+
+  const signature = options.copyAndPastedSigningMethod ? signPayload(payload, ledgerPrivateKey) : signPayloadElliptic(payload, ledgerPrivateKey, options);
 
   // Encode payload and signature as base64url
   return {

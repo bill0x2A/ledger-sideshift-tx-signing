@@ -1,18 +1,18 @@
 import base64url from "base64url";
 import secp256r1 from "secp256r1";
 import sha256 from "js-sha256";
-import { generatePayload } from "./signing";
-import "../lib/protocol_pb.js";
+import { generateProtobufPayload, generateGooglePayload } from "./payloadGeneration";
 import { LedgerSignInput } from "../types";
+import "../lib/protocol_pb.js";
 
-export const generatePayloadAndSignature = (data: LedgerSignInput) => {
+export const generatePayloadAndSignature = (data: LedgerSignInput, googlePayloadGeneration: boolean) => {
     const ledgerPrivateKey = process.env.LEDGER_PRIVATE_KEY;
 
     if (!ledgerPrivateKey) {
         throw new Error('Ledger private key not configured');
     }
 
-    const payload = generatePayload(data);
+    const payload = googlePayloadGeneration ? generateProtobufPayload(data) : generateGooglePayload(data);
     const base64Payload = Buffer.from(base64url(payload));
   
     const message = Buffer.concat([Buffer.from("."), base64Payload]);
