@@ -1,28 +1,9 @@
 "use client";
 import { useState, FormEvent } from 'react';
 import { WalletAPIClient, WindowMessageTransport } from '@ledgerhq/wallet-api-client';
-import { Options } from './types';
+import { LedgerSignInput, LedgerSignOutput } from './types';
 import base64url from 'base64url';
 import BigNumber from 'bignumber.js';
-
-type LedgerSignInput = {
-  depositAddress: string;
-  depositMemo?: string;
-  refundAddress?: string;
-  refundMemo?: string;
-  settleAddress: string;
-  settleMemo?: string;
-  depositMethodId: string;
-  settleMethodId: string;
-  depositAmount: string;
-  settleAmount: string;
-  deviceTransactionId: string;
-};
-
-type LedgerSignOutput = {
-  payload: string;
-  signature: string;
-};
 
 const windowMessageTransport = new WindowMessageTransport();
 windowMessageTransport.connect();
@@ -56,7 +37,7 @@ const DisplayInput = ({ name, value }: { name: string; value: string }) => (
     readOnly
   />
 </label>
-)
+);
 
 export default function Home () {
   const [input, setInput] = useState<LedgerSignInput>({
@@ -70,24 +51,14 @@ export default function Home () {
     settleAmount: '11464990000000000',
     depositMethodId: 'near',
     settleMethodId: 'ethereum',
-    deviceTransactionId: 'RIBBJBWMEG'
+    deviceTransactionId: ''
   });
 
   const [result, setResult] = useState<LedgerSignOutput | null>(null);
-  const [options, setOptions] = useState<Options>({
-    shouldHash: true,
-    copyAndPastedSigningMethod: true,
-    googlePayloadGeneration: true,
-  });
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setInput((prevInput) => ({ ...prevInput, [name]: value }));
-  };
-
-  const handleOptionsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = event.target;
-    setOptions((prevOptions) => ({ ...prevOptions, [name]: checked }));
   };
 
   const handleStartTransaction = async () => {
@@ -116,7 +87,6 @@ export default function Home () {
     });
   }
 
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -128,7 +98,7 @@ export default function Home () {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ input, options }),
+      body: JSON.stringify({ input }),
     });
 
     const data: LedgerSignOutput = await res.json();
@@ -155,9 +125,6 @@ export default function Home () {
           <FormInput name="depositAmount" value={input.depositAmount} onChange={handleInputChange} required />
           <FormInput name="settleAmount" value={input.settleAmount} onChange={handleInputChange} required />
           <FormInput name="deviceTransactionId" value={input.deviceTransactionId} onChange={handleInputChange} required />
-          <div><input type="checkbox" name={'shouldHash'} checked={options.shouldHash} onChange={handleOptionsChange}/> Should hash</div>
-          <div><input type="checkbox" name={'copyAndPastedSigningMethod'} checked={options.copyAndPastedSigningMethod} onChange={handleOptionsChange}/> Copy and paste method</div>
-          <div><input type="checkbox" name={'googlePayloadGeneration'} checked={options.googlePayloadGeneration} onChange={handleOptionsChange}/> Google payload generation</div>
           <button style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="submit">Generate payload and signature</button>
           <button style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="button" onClick={handleStartTransaction}>Start Transaction</button>
           <button style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="button" onClick={handleCompleteTransaction}>Complete Transaction</button>
