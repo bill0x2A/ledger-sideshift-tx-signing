@@ -1,5 +1,10 @@
 # Ledger / Sideshift payload signing debugging
+### Documentation quick links
 
+ - [wallet-api exchange function](https://wallet.api.live.ledger.com/core/modules/exchange)
+ - [swap provider endpoints](https://developers.ledger.com/docs/swap/howto/providers-endpoints/#protobuf-message-payload)
+ - [elliptic](https://www.npmjs.com/package/elliptic)
+ - [protobuf.js](https://www.npmjs.com/package/protobufjs)
 
 ### Method Breakdown
 
