@@ -1,35 +1,38 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Ledger / Sideshift payload signing debugging
 
-## Getting Started
 
-First, run the development server:
+### Method Breakdown
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+There are two methods of payload generation and signging used here.
+Each are respectively based off the example method found in [this repo](https://github.com/LedgerHQ/platform-app-test-exchange), and our own attempts based off the [swap provider documentation](https://developers.ledger.com/docs/swap/howto/providers-endpoints/#protobuf-message-payload).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The payload can be constructed with either **Google Protobuf** or **Protobuf.js**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The signature can be constructed with either **Elliptic** or several crypto libraries, as used in [platform-app-test-exchange](https://github.com/LedgerHQ/platform-app-test-exchange)
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+The combinations of these methods have been tried here in seperate branches:
 
-## Learn More
+#### Copy and paste from example (Google protobuf construction, crypto library signing)
+https://github.com/bill0x2A/ledger-sideshift-tx-signing/blob/copy-and-paste/src/app/api/sign-ledger-tx/route.ts
+(copy-and-paste)
 
-To learn more about Next.js, take a look at the following resources:
+#### Google protobuf construction with Elliptic signing
+https://github.com/bill0x2A/ledger-sideshift-tx-signing/blob/google-payload-elliptic-signing/src/app/api/sign-ledger-tx/route.ts
+(google-payload-elliptic-signing)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### Protobuf.js payload construction with crypto library signing
+https://github.com/bill0x2A/ledger-sideshift-tx-signing/blob/protobuf-payload-generation/src/app/api/sign-ledger-tx/route.ts
+(protobuf-payload-generation)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+#### Protobuf.js payload construction with Elliptic signing
+https://github.com/bill0x2A/ledger-sideshift-tx-signing/blob/protobuf-payload-elliptic-signing/src/app/api/sign-ledger-tx/route.ts
+(protobuf-payload-elliptic-signing)
 
-## Deploy on Vercel
+All payload construction and signing methods are shown in single files here for debugging.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
-# ledger-sideshift-tx-signing
+### Frontend debugging features
+
+The minimal frontend allows the filling of all inputs that go into the payload construction, and call the backend signing functions, with copy and pasted default values from a real RPC call.
+
+There are buttons to call `exchange.start`, `exchange.completeSwap` and construct the payload and signatures.
