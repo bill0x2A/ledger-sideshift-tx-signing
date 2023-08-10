@@ -1,6 +1,6 @@
 "use client";
 import { useState, FormEvent } from 'react';
-import { WalletAPIClient, WindowMessageTransport } from '@ledgerhq/wallet-api-client';
+import { Account, WalletAPIClient, WindowMessageTransport } from '@ledgerhq/wallet-api-client';
 import { LedgerSignInput, LedgerSignOutput } from './types';
 import base64url from 'base64url';
 import BigNumber from 'bignumber.js';
@@ -9,6 +9,8 @@ const windowMessageTransport = new WindowMessageTransport();
 windowMessageTransport.connect();
 
 const ledgerWalletAPIClient = new WalletAPIClient(windowMessageTransport);
+
+const BTC_DEPOSIT_ADDRESS = "345yX9SPGGMnyVXHrgfbBvJ1RmughLnHGh";
 
 const FormInput = (
   { name, value, onChange, required }:
@@ -41,18 +43,21 @@ const DisplayInput = ({ name, value }: { name: string; value: string }) => (
 
 export default function Home () {
   const [input, setInput] = useState<LedgerSignInput>({
-    depositAddress: '1c01c682c3b9db5b2866f6b4ecde61e9bd58edf8dd718b98ac2dd1fabd646626',
+    depositAddress: BTC_DEPOSIT_ADDRESS,
     depositMemo: undefined,
-    refundAddress: '46a678f6c4e36674409c3c0f91ac06da506fa8fafe0dce0673a73595b87a3539',
+    refundAddress: BTC_DEPOSIT_ADDRESS,
     refundMemo: undefined,
     settleAddress: '0xaE984C089B358326bF35555c8C7F29B0E8843B96',
     settleMemo: undefined,
-    depositAmount: '16000000000000000000000000',
+    depositAmount: '10000',
     settleAmount: '11464990000000000',
-    depositMethodId: 'near',
+    depositMethodId: 'btc',
     settleMethodId: 'ethereum',
-    deviceTransactionId: 'RIBBJBWMEG'
+    deviceTransactionId: ''
   });
+
+  const [selectedDepositAccount, setSelectedDepositAccount] = useState<Account | null>(null);
+  const [selectedSettleAccount, setSelectedSettleAccount] = useState<Account | null>(null);
 
   const [result, setResult] = useState<LedgerSignOutput | null>(null);
 
@@ -69,17 +74,16 @@ export default function Home () {
   }
 
   const handleCompleteTransaction = async () => {
-    if (!result) return;
+    if (!result || !selectedDepositAccount || !selectedSettleAccount) return;
   
     const txId = await ledgerWalletAPIClient.exchange.completeSwap({
       provider: 'ssaitest',
-      fromAccountId: "dcb911b8-f527-5150-8d03-d11ccc8553ae",
-      toAccountId: "f4057b5b-8b93-5420-8645-5b4f285c6b42",
+      fromAccountId: selectedDepositAccount.id,
+      toAccountId: selectedSettleAccount.id,
       transaction: {
         amount: BigNumber(input.depositAmount) as any,
-        recipient: "a66ed5c7acd6d8c6e6da7ed867602fd134060fadab826fc3dc85b811c9368399",
-        family: "near",
-        mode: "send"
+        recipient: BTC_DEPOSIT_ADDRESS,
+        family: "bitcoin",
       },
       binaryPayload: base64url.toBuffer(result.payload),
       signature: base64url.toBuffer(result.signature),
@@ -87,7 +91,22 @@ export default function Home () {
     });
   }
 
+  const handleSelectDepositAccount = async () => {
+    const selectedLedgerAccount = await ledgerWalletAPIClient.account.request({
+      currencyIds: ['bitcoin'],
+    });
 
+    setSelectedDepositAccount(selectedLedgerAccount);
+  };
+
+  const handleSelectSettleAccount = async () => {
+    const selectedLedgerAccount = await ledgerWalletAPIClient.account.request({
+      currencyIds: ['ethereum'],
+    });
+
+    setSelectedSettleAccount(selectedLedgerAccount);
+  };
+    
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -99,7 +118,11 @@ export default function Home () {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ input }),
+      body: JSON.stringify({ input: {
+        ...input,
+        refundAddess: selectedDepositAccount?.address,
+        settleAddress: selectedSettleAccount?.address,
+      }})
     });
 
     const data: LedgerSignOutput = await res.json();
@@ -126,9 +149,11 @@ export default function Home () {
           <FormInput name="depositAmount" value={input.depositAmount} onChange={handleInputChange} required />
           <FormInput name="settleAmount" value={input.settleAmount} onChange={handleInputChange} required />
           <FormInput name="deviceTransactionId" value={input.deviceTransactionId} onChange={handleInputChange} required />
-          <button style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="submit">Generate payload and signature</button>
-          <button style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="button" onClick={handleStartTransaction}>Start Transaction</button>
-          <button style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="button" onClick={handleCompleteTransaction}>Complete Transaction</button>
+          <button style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="button" onClick={handleSelectDepositAccount}>Select Deposit Account</button>
+          <button style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="button" onClick={handleSelectSettleAccount}>Select Settle Account</button>
+          <button disabled={!selectedDepositAccount || !selectedSettleAccount} style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="button" onClick={handleStartTransaction}>Start Transaction</button>
+          <button disabled={!selectedDepositAccount || !selectedSettleAccount || !input.deviceTransactionId} style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="submit">Generate payload and signature</button>
+          <button disabled={!result} style={{ width: "20rem", height: "2rem", marginTop: '20px' }} type="button" onClick={handleCompleteTransaction}>Complete Transaction</button>
         </form>
         <div>
           <DisplayInput name="Payload (base64url)" value={result?.payload || ''}/>
