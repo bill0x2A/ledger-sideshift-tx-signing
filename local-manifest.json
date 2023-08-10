@@ -11,7 +11,8 @@
     "categories": ["buy"],
     "currencies": [
       "ethereum",
-      "near"
+      "near",
+      "bitcoin"
     ],
     "content": {
       "shortDescription": {
@@ -22,6 +23,7 @@
       }
     },
     "permissions": [
+      "account.request",
       "exchange.start",
       "exchange.completeSwap",
       "exchange.complete"
