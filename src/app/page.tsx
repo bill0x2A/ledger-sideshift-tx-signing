@@ -10,7 +10,7 @@ windowMessageTransport.connect();
 
 const ledgerWalletAPIClient = new WalletAPIClient(windowMessageTransport);
 
-const BTC_DEPOSIT_ADDRESS = "345yX9SPGGMnyVXHrgfbBvJ1RmughLnHGh";
+const BTC_DEPOSIT_ADDRESS = "bc1qdevk3wzythwv9t503m4lkujt2xg2esw05w92zq";
 
 const FormInput = (
   { name, value, onChange, required }:
@@ -45,9 +45,9 @@ export default function Home () {
   const [input, setInput] = useState<LedgerSignInput>({
     depositAddress: BTC_DEPOSIT_ADDRESS,
     depositMemo: undefined,
-    refundAddress: BTC_DEPOSIT_ADDRESS,
+    refundAddress: 'bc1q75kfah5068lt35qp6nr46g6js2ex2v32xeu409',
     refundMemo: undefined,
-    settleAddress: '0xaE984C089B358326bF35555c8C7F29B0E8843B96',
+    settleAddress: '0x013A13042B1B16f7f8c3b9F74d98b2B917E8e69c',
     settleMemo: undefined,
     depositAmount: '10000',
     settleAmount: '11464990000000000',
@@ -89,6 +89,8 @@ export default function Home () {
       signature: base64url.toBuffer(result.signature),
       feeStrategy: 'MEDIUM',
     });
+
+    console.log(txId)
   }
 
   const handleSelectDepositAccount = async () => {
