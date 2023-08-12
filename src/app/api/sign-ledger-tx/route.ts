@@ -5,6 +5,7 @@ import base64url from 'base64url';
 import { ec as EC } from 'elliptic';
 import { createHash } from 'crypto';
 import '../../lib/protocol_pb.js';
+import protobuf from 'protobufjs';
 
 // https://github.com/LedgerHQ/platform-app-test-exchange/blob/main/src/utils/numberToBigEndianBuffer.ts
 // x modified to be BigInt
@@ -20,19 +21,6 @@ const numberToBigEndianBuffer = (x: BigInt) => {
 const generatePayload = (input: LedgerSignInput) => {
   const tr = new proto.ledger_swap.NewTransactionResponse();
 
-  console.log('Generating payload with input:');
-  console.log('\tdepositAddress: ', input.depositAddress);
-  console.log('\tdepositMemo:    ', input.depositMemo);
-  console.log('\trefundAddress:  ', input.refundAddress);
-  console.log('\trefundMemo:     ', input.refundMemo);
-  console.log('\tsettleAddress:  ', input.settleAddress);
-  console.log('\tsettleMemo:     ', input.settleMemo);
-  console.log('\tdepositMethodId:', input.depositMethodId);
-  console.log('\tsettleMethodId: ', input.settleMethodId);
-  console.log('\tdepositAmount:  ', input.depositAmount);
-  console.log('\tsettleAmount:   ', input.settleAmount);
-  console.log('\tdeviceTxId:     ', input.deviceTransactionId);
-
   tr.setPayinAddress(input.depositAddress);
   input.depositMemo && tr.setPayinExtraId(input.depositMemo);
   input.refundAddress && tr.setRefundAddress(input.refundAddress);
@@ -45,17 +33,51 @@ const generatePayload = (input: LedgerSignInput) => {
   tr.setAmountToWallet(numberToBigEndianBuffer(BigInt(input.settleAmount)));
   tr.setDeviceTransactionId(input.deviceTransactionId);
 
+  console.log('NewTransactionResponse:');
+  console.log(tr.toObject());
+
   // Serialize protobuf, return as buffer (modified from example to be compatible with Elliptic lib)
-  return Buffer.from(tr.serializeBinary());
+  const serialized = Buffer.from(tr.serializeBinary());
+
+  return serialized;
 };
 
 export async function POST(req: any) {
   const { input }: { input: LedgerSignInput } = await req.json();
 
-  const payload = generatePayload(input);
+  let payload = generatePayload(input);
   fs.writeFileSync('payload.bin', payload);
   console.log('Payload written to payload.bin');
   console.log('Sign with: openssl dgst -sha256 -sign priv.pem payload.bin');
+
+  // Decode with protobuf.js to ensure fields are correct
+  await new Promise<void>((resolve, reject) => {
+    protobuf.load(
+      __dirname + '../../../../../../proto/NewTransactionResponse.proto',
+      (err, root) => {
+        if (err) {
+          reject(err);
+        }
+
+        const NewTransactionResponse = root!.lookupType(
+          'ledger_swap.NewTransactionResponse'
+        );
+
+        const errMsg = NewTransactionResponse.verify(payload);
+
+        if (errMsg) {
+          reject(new Error(errMsg));
+        }
+
+        const message = NewTransactionResponse.decode(payload);
+
+        console.log('NewTransactionResponse (decoded with protobuf.js):');
+        console.log(NewTransactionResponse.toObject(message));
+
+        resolve();
+      }
+    );
+  });
 
   const { LEDGER_PRIVATE_KEY_HEX } = process.env;
 
