@@ -12,10 +12,9 @@ type LedgerSignInput = {
     deviceTransactionId: string;
 };
 
-type Options = {
-  shouldHash?: boolean;
-  copyAndPastedSigningMethod?: boolean;
-  googlePayloadGeneration?: boolean;
+type LedgerSignOutput = {
+  payload: string;
+  signature: string;
 };
 
-export type { LedgerSignInput, Options };
+export type { LedgerSignInput, LedgerSignOutput };
