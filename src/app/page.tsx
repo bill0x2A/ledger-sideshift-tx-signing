@@ -8,6 +8,7 @@ import {
 import { LedgerSignInput, LedgerSignOutput } from './types';
 import base64url from 'base64url';
 import BigNumber from 'bignumber.js';
+import { generatePayloadAPDU, generateSignatureCheckAPDU } from './util/helpers';
 
 const windowMessageTransport = new WindowMessageTransport();
 windowMessageTransport.connect();
@@ -15,6 +16,10 @@ windowMessageTransport.connect();
 const ledgerWalletAPIClient = new WalletAPIClient(windowMessageTransport);
 
 const BTC_DEPOSIT_ADDRESS = 'bc1qdevk3wzythwv9t503m4lkujt2xg2esw05w92zq';
+
+const FAKE_LEDGER_ETH_ADDRESS = "0xd692Cb1346262F584D17B4B470954501f6715a82";
+const FAKE_LEDGER_BTC_ADDRESS = "bc1qer57ma0fzhqys2cmydhuj9cprf9eg0nw922a8j";
+const FAKE_LEDGER_REFUND_ADDRESS = "0xDad77910DbDFdE764fC21FCD4E74D71bBACA6D8D";
 
 const FormInput = ({
   name,
@@ -60,18 +65,20 @@ export default function Home() {
     useState<Account | null>(null);
 
   const [input, setInput] = useState<LedgerSignInput>({
-    depositAddress: BTC_DEPOSIT_ADDRESS,
+    depositAddress: FAKE_LEDGER_ETH_ADDRESS,
     depositMemo: undefined,
-    refundAddress: '',
+    refundAddress: FAKE_LEDGER_REFUND_ADDRESS,
     refundMemo: undefined,
-    settleAddress: '',
+    settleAddress: FAKE_LEDGER_BTC_ADDRESS,
     settleMemo: undefined,
     depositAmount: '10000',
     settleAmount: '11464990000000000',
-    depositMethodId: '',
-    settleMethodId: '',
-    deviceTransactionId: '',
+    depositMethodId: 'bitcoin',
+    settleMethodId: 'ethereum',
+    deviceTransactionId: 'QQQQQQQQQQ',
   });
+
+  console.log(input.depositMethodId, input.settleMethodId);
 
   const [result, setResult] = useState<LedgerSignOutput | null>(null);
 
@@ -102,7 +109,7 @@ export default function Home() {
       toAccountId: selectedSettleAccount.id,
       transaction: {
         amount: BigNumber(input.depositAmount) as any,
-        recipient: BTC_DEPOSIT_ADDRESS,
+        recipient: input.depositAddress,
         family: 'bitcoin',
       },
       binaryPayload: base64url.toBuffer(result.payload),
@@ -116,8 +123,8 @@ export default function Home() {
       toAccountId: selectedSettleAccount.id,
       transaction: {
         amount: BigNumber(input.depositAmount) as any,
-        recipient: BTC_DEPOSIT_ADDRESS,
-        family: 'bitcoin',
+        recipient: input.depositAddress,
+        family: 'ethereum',
       },
       binaryPayload: base64url.toBuffer(result.payload),
       signature: base64url.toBuffer(result.signature),
@@ -129,7 +136,7 @@ export default function Home() {
 
   const handleSelectDepositAccount = async () => {
     const selectedLedgerAccount = await ledgerWalletAPIClient.account.request({
-      currencyIds: ['bitcoin'],
+      currencyIds: ['ethereum'],
     });
 
     setSelectedDepositAccount(selectedLedgerAccount);
@@ -143,7 +150,7 @@ export default function Home() {
 
   const handleSelectSettleAccount = async () => {
     const selectedLedgerAccount = await ledgerWalletAPIClient.account.request({
-      currencyIds: ['ethereum'],
+      currencyIds: ['bitcoin'],
     });
 
     setSelectedSettleAccount(selectedLedgerAccount);
@@ -272,11 +279,6 @@ export default function Home() {
             Start Transaction
           </button>
           <button
-            disabled={
-              !selectedDepositAccount ||
-              !selectedSettleAccount ||
-              !input.deviceTransactionId
-            }
             style={{ width: '20rem', height: '2rem', marginTop: '20px' }}
             type="submit"
           >
@@ -313,6 +315,22 @@ export default function Home() {
             value={
               result
                 ? Buffer.from(result?.signature, 'base64').toString('hex')
+                : ''
+            }
+          />
+          <DisplayInput
+            name="CHECK_SIGNATURE_APDU"
+            value={
+              result
+                ? generateSignatureCheckAPDU(Buffer.from(result?.signature, 'base64').toString('hex'))
+                : ''
+            }
+          />
+          <DisplayInput
+            name="START_TRANSACTION_APDU"
+            value={
+              result
+                ? generatePayloadAPDU(Buffer.from(result?.payload, 'base64').toString('hex'))
                 : ''
             }
           />
