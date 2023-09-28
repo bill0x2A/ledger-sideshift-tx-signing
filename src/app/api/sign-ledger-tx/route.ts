@@ -7,6 +7,8 @@ import { createHash } from 'crypto';
 import '../../lib/protocol_pb.js';
 import protobuf from 'protobufjs';
 
+const PYTHON_BACKEND_URL = 'http://localhost:5000/api/sign';
+
 // https://github.com/LedgerHQ/platform-app-test-exchange/blob/main/src/utils/numberToBigEndianBuffer.ts
 // x modified to be BigInt
 const numberToBigEndianBuffer = (x: BigInt) => {
@@ -49,6 +51,21 @@ export async function POST(req: any) {
   fs.writeFileSync('payload.bin', payload);
   console.log('Payload written to payload.bin');
   console.log('Sign with: openssl dgst -sha256 -sign priv.pem payload.bin');
+
+  // const response = await fetch(PYTHON_BACKEND_URL, {
+  //   method: 'POST',
+  //   headers: {
+  //       'Content-Type': 'application/json'
+  //   },
+  //   body: JSON.stringify({ data: payload.toString('base64') })
+  //   });
+
+  //   if (!response.ok) {
+  //       throw new Error("Network response was not ok");
+  //   }
+
+  //   const data = await response.json();
+  //   const signature: string = data.signature;
 
   // Decode with protobuf.js to ensure fields are correct
   await new Promise<void>((resolve, reject) => {
@@ -141,6 +158,7 @@ export async function POST(req: any) {
 
   // NOTE: This may need to be in base64url format
   const payloadEncoded = base64url(payload);
+  const signatureEncoded = base64url(rsSignature);
 
   if (payload.toString('base64') !== payloadEncoded) {
     console.warn(
@@ -154,6 +172,6 @@ export async function POST(req: any) {
   // Return payload and signature as base64url encoded strings
   return NextResponse.json({
     payload: payloadEncoded,
-    signature: rSignatureEncoded,
+    signature: signatureEncoded,
   });
 }

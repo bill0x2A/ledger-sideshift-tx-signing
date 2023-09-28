@@ -4,6 +4,7 @@ import {
   Account,
   WalletAPIClient,
   WindowMessageTransport,
+  FAMILIES
 } from '@ledgerhq/wallet-api-client';
 import { LedgerSignInput, LedgerSignOutput } from './types';
 import base64url from 'base64url';
@@ -68,8 +69,8 @@ export default function Home() {
     settleMemo: undefined,
     depositAmount: '10000',
     settleAmount: '11464990000000000',
-    depositMethodId: '',
-    settleMethodId: '',
+    depositMethodId: 'bitcoin',
+    settleMethodId: 'ethereum',
     deviceTransactionId: '',
   });
 
